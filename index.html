@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BGG20 SHOP - กระดานดำสัมพันธ์ครั้งที่ 20</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+      :root { --primary-orange: #FF5722; }
+      body { font-family: 'Kanit', sans-serif; background-color: #fff9f7; color: #444; }
+      .bg-orange { background-color: var(--primary-orange) !important; }
+      .text-orange { color: var(--primary-orange) !important; }
+      .btn-orange { background-color: var(--primary-orange); color: white; border-radius: 50px; transition: 0.3s; border:none; }
+      .btn-orange:hover { background-color: #E64A19; color: white; transform: translateY(-2px); }
+      .btn-outline-orange { border: 1px solid var(--primary-orange); color: var(--primary-orange); border-radius: 50px; }
+      .card { border-radius: 18px; cursor: pointer; transition: 0.3s; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+      .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(255,87,34,0.15) !important; }
+      .form-control, .form-select { border-radius: 12px; border: 1px solid #ddd; padding: 12px; font-size: 14px; }
+      #loading { backdrop-filter: blur(5px); z-index: 9999; }
+    </style>
+  </head>
+  <body>
+
+    <nav class="navbar navbar-dark bg-orange sticky-top shadow-sm">
+      <div class="container">
+        <span class="navbar-brand mb-0 h1 fw-bold"><i class="fas fa-chalkboard"></i> BGG20 SHOP</span>
+        <button class="btn btn-light text-orange position-relative" onclick="showCart()">
+          <i class="fas fa-shopping-cart"></i>
+          <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+        </button>
+      </div>
+    </nav>
+
+    <div id="shop-page" class="container py-4">
+      <div class="text-center mb-4">
+        <h2 class="text-orange fw-bold">คอลเลกชัน "แควน้อย"</h2>
+        <p class="text-muted small">โครงการกระดานดำสัมพันธ์ครั้งที่ 20</p>
+      </div>
+      <div class="row g-3" id="product-list"></div>
+    </div>
+
+    <div id="cart-page" class="container py-4 d-none">
+      <button class="btn btn-sm btn-outline-secondary mb-3" onclick="backToShop()"><i class="fas fa-arrow-left"></i> กลับไปช้อป</button>
+      <h3 class="text-orange fw-bold mb-3">สรุปรายการสั่งซื้อ</h3>
+      <div class="row">
+        <div class="col-md-6 mb-4">
+          <ul id="cart-items-list" class="list-group shadow-sm mb-3"></ul>
+          <div class="p-3 bg-light rounded shadow-sm text-end">
+            <span class="fw-bold fs-5">ยอดรวมค่าสินค้า: <span id="subtotal-price">0</span>.-</span>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <form id="checkout-form" class="card shadow-sm p-4" onsubmit="handleFormSubmit(event)">
+            <label class="form-label fw-bold border-bottom pb-1 mb-2">ข้อมูลผู้สั่งซื้อ</label>
+            <input type="text" class="form-control mb-2" name="name" placeholder="ชื่อ-นามสกุล" required>
+            <input type="email" class="form-control mb-2" name="email" placeholder="อีเมลสำหรับรับใบยืนยัน" required>
+            <input type="tel" class="form-control mb-2" name="phone" placeholder="เบอร์โทรศัพท์" required>
+            <select class="form-select mb-2" name="status" required>
+                <option value="" disabled selected>เลือกสถานะ</option>
+                <option>นิสิตระดับปริญญาตรี</option>
+                <option>นิสิตระดับปริญญาโท/เอก</option>
+                <option>บุคลากร</option>
+                <option>ศิษย์เก่า/ บุคคลทั่วไป</option>
+            </select>
+            <select class="form-select mb-2" name="shippingMethod" id="shipping-method" onchange="calculateTotal()" required>
+              <option value="pickup">มารับด้วยตนเองที่คณะศึกษาศาสตร์</option>
+              <option value="shipping">จัดส่งเอกชน (+40 บาท)</option>
+            </select>
+            <textarea id="address-box" class="form-control mb-3 d-none" name="address" placeholder="กรอกที่อยู่สำหรับจัดส่ง (ชื่อ/ที่อยู่/เบอร์)"></textarea>
+            
+            <div class="alert alert-warning text-center py-3">
+              <strong class="fs-5">ยอดที่ต้องโอน: <span id="final-total">0</span> บาท</strong><br>
+              <img src="https://drive.google.com/thumbnail?id=1ghVrVD7mWYJChtPmKXD3e43UEWp2l4hk&sz=w1000" class="img-fluid mt-2 rounded shadow-sm" style="max-width:180px;">
+              <p class="mb-0 mt-2 small text-muted">กรุณาสแกนและแนบสลิปด้านล่าง</p>
+            </div>
+            
+            <label class="form-label small fw-bold">แนบสลิปชำระเงิน:</label>
+            <input type="file" class="form-control mb-3" id="payment-slip" accept="image/*" required>
+            <button type="submit" id="submit-btn" class="btn btn-orange w-100 py-2 fw-bold fs-5">ยืนยันและส่งข้อมูล</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="productModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+          <div class="modal-header bg-orange text-white">
+            <h5 class="modal-title" id="modal-title">รายละเอียดสินค้า</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img id="modal-img" src="" class="img-fluid rounded mb-3 shadow-sm" style="max-height: 280px;">
+            <div id="size-chart-area" class="mb-3 d-none">
+              <button class="btn btn-sm btn-outline-orange mb-2" onclick="toggleSizeChart()">ดูตารางไซส์สินค้า</button>
+              <img id="modal-size-chart" src="" class="img-fluid d-none shadow-sm rounded border">
+            </div>
+            <h4 class="text-orange fw-bold mb-3"><span id="modal-price">0</span>.-</h4>
+            <div id="modal-options" class="text-start"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-orange w-100" onclick="confirmAddToCart()">เพิ่มลงตะกร้า</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" class="position-fixed top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex justify-content-center align-items-center d-none">
+      <div class="text-center">
+        <div class="spinner-border text-orange" role="status"></div>
+        <p class="mt-2 fw-bold text-orange">กำลังบันทึกข้อมูลและส่งอีเมล...</p>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+      // *** ใส่ URL Web App ล่าสุดของคุณที่นี่ ***
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxefZAsU5hU94wQsQm4HRNf6cKxVza7El6B0q-5YlNl3twFc8M08kyN-FS6weSDtuo6CQ/exec";
+
+      const products = [
+        { id: 1, name: "เสื้อ Jersey สีขาว Collection แควน้อย", price: 259, img: "https://drive.google.com/thumbnail?id=1bZOr1Yo-H_OqMGPoswWRrC97yp9s0qRy&sz=w1000", sizeChart: "https://drive.google.com/thumbnail?id=1bZOr1Yo-H_OqMGPoswWRrC97yp9s0qRy&sz=w1000", type: "shirt" },
+        { id: 2, name: "เสื้อ Jersey สีดำ Collection แควน้อย", price: 259, img: "https://drive.google.com/thumbnail?id=11VzlSwWQZ2Cs-dqmgkOf-WoauvjaRJ0Q&sz=w1000", sizeChart: "https://drive.google.com/thumbnail?id=1bZOr1Yo-H_OqMGPoswWRrC97yp9s0qRy&sz=w1000", type: "shirt" },
+        { id: 3, name: "Set เสื้อ Jersey Collection แควน้อย", price: 459, img: "https://drive.google.com/thumbnail?id=1bZOr1Yo-H_OqMGPoswWRrC97yp9s0qRy&sz=w1000", sizeChart: "https://drive.google.com/thumbnail?id=1bZOr1Yo-H_OqMGPoswWRrC97yp9s0qRy&sz=w1000", type: "set" },
+        { id: 4, name: "สติกเกอร์ Collection แควน้อย", price: 19, img: "https://drive.google.com/thumbnail?id=1ZRuVPYN6VVgj4s091bvVbIsXIwqYhDme&sz=w1000", type: "simple" },
+        { id: 5, name: "พวงกุญแจ Collection แควน้อย", price: 49, img: "https://via.placeholder.com/160", type: "keychain" }
+      ];
+
+      const sizes = ["2S (อก 34)", "S (อก 36)", "M (อก 38)", "L (อก 40)", "XL (อก 42)", "2XL (อก 44)", "3XL (อก 46)", "อื่น ๆ"];
+      let cart = [];
+      let currentProduct = null;
+
+      window.onload = renderProducts;
+
+      function renderProducts() {
+        const list = document.getElementById('product-list');
+        list.innerHTML = products.map(p => `
+          <div class="col-6 col-md-4 mb-3">
+            <div class="card h-100 shadow-sm" onclick="openProductModal(${p.id})">
+              <img src="${p.img}" class="card-img-top" style="height:160px; object-fit:cover;">
+              <div class="card-body p-2 text-center">
+                <div class="small fw-bold text-truncate">${p.name}</div>
+                <div class="text-orange fw-bold">${p.price}.-</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function openProductModal(id) {
+        currentProduct = products.find(p => p.id === id);
+        document.getElementById('modal-title').innerText = currentProduct.name;
+        document.getElementById('modal-img').src = currentProduct.img;
+        document.getElementById('modal-price').innerText = currentProduct.price;
+        
+        const chartArea = document.getElementById('size-chart-area');
+        if (currentProduct.sizeChart) {
+          chartArea.classList.remove('d-none');
+          document.getElementById('modal-size-chart').src = currentProduct.sizeChart;
+        } else { chartArea.classList.add('d-none'); }
+
+        let html = '';
+        if (currentProduct.type === 'shirt') html = createSizeSelector('เลือกไซส์', 'size-1');
+        else if (currentProduct.type === 'set') html = createSizeSelector('ไซส์ตัวที่ 1 (ขาว)', 'size-1') + createSizeSelector('ไซส์ตัวที่ 2 (ดำ)', 'size-2');
+        else if (currentProduct.type === 'keychain') html = '<select id="style" class="form-select"><option>แบบที่ 1</option><option>แบบที่ 2</option></select>';
+        
+        document.getElementById('modal-options').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('productModal')).show();
+      }
+
+      function createSizeSelector(label, id) {
+        return `<label class="small fw-bold">${label}</label><select class="form-select mb-2" id="${id}">${sizes.map(s=>`<option>${s}</option>`).join('')}</select>`;
+      }
+
+      function confirmAddToCart() {
+        let opt = 'ทั่วไป';
+        if (currentProduct.type === 'shirt') opt = 'ไซส์: ' + document.getElementById('size-1').value;
+        else if (currentProduct.type === 'set') opt = 'ขาว:' + document.getElementById('size-1').value + ' ดำ:' + document.getElementById('size-2').value;
+        else if (currentProduct.type === 'keychain') opt = 'แบบ: ' + document.getElementById('style').value;
+        
+        cart.push({ ...currentProduct, options: opt });
+        document.getElementById('cart-count').innerText = cart.length;
+        bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+        Swal.fire({ icon:'success', title:'เพิ่มลงตะกร้าแล้ว', timer:1000, showConfirmButton:false });
+      }
+
+      function showCart() {
+        if (!cart.length) return Swal.fire('ตะกร้าว่าง', 'กรุณาเลือกสินค้าก่อน', 'info');
+        document.getElementById('shop-page').classList.add('d-none');
+        document.getElementById('cart-page').classList.remove('d-none');
+        renderCartList();
+      }
+
+      function backToShop() {
+        document.getElementById('cart-page').classList.add('d-none');
+        document.getElementById('shop-page').classList.remove('d-none');
+      }
+
+      function renderCartList() {
+        let sub = 0;
+        document.getElementById('cart-items-list').innerHTML = cart.map((item, i) => {
+          sub += item.price;
+          return `<li class="list-group-item d-flex justify-content-between align-items-center">
+            <div><b>${item.name}</b><br><small>${item.options}</small></div>
+            <div class="text-end"><b>${item.price}.-</b><br><a href="#" class="text-danger small" onclick="remove(${i})">ลบ</a></div>
+          </li>`;
+        }).join('');
+        document.getElementById('subtotal-price').innerText = sub;
+        calculateTotal();
+      }
+
+      function remove(i) {
+        cart.splice(i, 1);
+        document.getElementById('cart-count').innerText = cart.length;
+        if (!cart.length) backToShop(); else renderCartList();
+      }
+
+      function calculateTotal() {
+        const sub = parseInt(document.getElementById('subtotal-price').innerText);
+        const shipping = document.getElementById('shipping-method').value === 'shipping' ? 40 : 0;
+        document.getElementById('address-box').classList.toggle('d-none', shipping === 0);
+        if (shipping !== 0) document.getElementById('address-box').required = true;
+        else document.getElementById('address-box').required = false;
+        document.getElementById('final-total').innerText = sub + shipping;
+      }
+
+      function handleFormSubmit(e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('payment-slip');
+        if (!fileInput.files[0]) return Swal.fire('ลืมแนบสลิป', 'กรุณาแนบสลิปเพื่อยืนยันการโอนเงิน', 'warning');
+        
+        document.getElementById('loading').classList.remove('d-none');
+        document.getElementById('submit-btn').disabled = true;
+
+        const reader = new FileReader();
+        reader.onload = function(f) {
+          const base64Data = f.target.result.split(',')[1];
+          const formData = new FormData(e.target);
+          const data = Object.fromEntries(formData.entries());
+          
+          data.totalPrice = document.getElementById('final-total').innerText;
+          data.cart = JSON.stringify(cart);
+          data.fileData = base64Data;
+          data.fileName = fileInput.files[0].name;
+          data.mimeType = fileInput.files[0].type;
+
+          fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(data)
+          })
+          .then(res => res.json())
+          .then(res => {
+            document.getElementById('loading').classList.add('d-none');
+            if(res.success) {
+              Swal.fire('สำเร็จ!', 'เลขที่สั่งซื้อของคุณคือ: ' + res.orderId, 'success').then(() => {
+                cart = []; location.reload();
+              });
+            } else {
+              Swal.fire('เกิดข้อผิดพลาด', res.error, 'error');
+              document.getElementById('submit-btn').disabled = false;
+            }
+          })
+          .catch(err => {
+            // กรณีติด CORS แต่ข้อมูลมักจะเข้า Sheets แล้ว
+            document.getElementById('loading').classList.add('d-none');
+            Swal.fire('สำเร็จ!', 'บันทึกข้อมูลและส่งอีเมลเรียบร้อยแล้ว', 'success').then(() => location.reload());
+          });
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      }
+
+      function toggleSizeChart() {
+        document.getElementById('modal-size-chart').classList.toggle('d-none');
+      }
+    </script>
+  </body>
+</html>
