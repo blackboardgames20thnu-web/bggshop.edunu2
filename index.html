@@ -170,7 +170,7 @@
         let html = '';
         if (currentProduct.type === 'shirt') html = createSizeSelector('เลือกไซส์', 'size-1');
         else if (currentProduct.type === 'set') html = createSizeSelector('ไซส์ตัวที่ 1 (ขาว)', 'size-1') + createSizeSelector('ไซส์ตัวที่ 2 (ดำ)', 'size-2');
-        else if (currentProduct.type === 'keychain') html = '<select id="style" class="form-select"><option>แบบที่ 1</option><option>แบบที่ 2</option></select>';
+        else if (currentProduct.type === 'keychain') html = '<select id="style" class="form-select"><option>แบบที่ 1</option><option>แบบที่ 2</option><option>แบบที่ 3</option></select>';
         
         document.getElementById('modal-options').innerHTML = html;
         new bootstrap.Modal(document.getElementById('productModal')).show();
