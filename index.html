@@ -177,20 +177,65 @@
       }
 
       function createSizeSelector(label, id) {
-        return `<label class="small fw-bold">${label}</label><select class="form-select mb-2" id="${id}">${sizes.map(s=>`<option>${s}</option>`).join('')}</select>`;
-      }
+  return `
+    <div class="mb-3">
+      <label class="small fw-bold">${label}</label>
+      <select class="form-select mb-2 size-select" id="${id}" onchange="checkOtherSize('${id}')">
+        ${sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
+      </select>
+      <input type="text" id="${id}-other" class="form-control d-none" placeholder="ระบุไซส์ที่ต้องการ (เช่น 4XL หรือ อก 50)">
+    </div>
+  `;
+}
+
+// เพิ่มฟังก์ชันสำหรับตรวจสอบเมื่อเลือก "อื่น ๆ"
+function checkOtherSize(id) {
+  const select = document.getElementById(id);
+  const otherInput = document.getElementById(id + '-other');
+  if (select.value === 'อื่น ๆ') {
+    otherInput.classList.remove('d-none');
+    otherInput.focus();
+  } else {
+    otherInput.classList.add('d-none');
+  }
+}
 
       function confirmAddToCart() {
-        let opt = 'ทั่วไป';
-        if (currentProduct.type === 'shirt') opt = 'ไซส์: ' + document.getElementById('size-1').value;
-        else if (currentProduct.type === 'set') opt = 'ขาว:' + document.getElementById('size-1').value + ' ดำ:' + document.getElementById('size-2').value;
-        else if (currentProduct.type === 'keychain') opt = 'แบบ: ' + document.getElementById('style').value;
-        
-        cart.push({ ...currentProduct, options: opt });
-        document.getElementById('cart-count').innerText = cart.length;
-        bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
-        Swal.fire({ icon:'success', title:'เพิ่มลงตะกร้าแล้ว', timer:1000, showConfirmButton:false });
-      }
+  let opt = 'ทั่วไป';
+  
+  if (currentProduct.type === 'shirt') {
+    const s1 = document.getElementById('size-1');
+    const s1Other = document.getElementById('size-1-other');
+    const finalSize = s1.value === 'อื่น ๆ' ? s1Other.value : s1.value;
+    
+    if (s1.value === 'อื่น ๆ' && !s1Other.value) {
+      return Swal.fire('กรุณาระบุไซส์', 'ท่านเลือก "อื่น ๆ" กรุณาระบุไซส์ที่ต้องการ', 'warning');
+    }
+    opt = 'ไซส์: ' + finalSize;
+    
+  } else if (currentProduct.type === 'set') {
+    const s1 = document.getElementById('size-1');
+    const s1Other = document.getElementById('size-1-other');
+    const s2 = document.getElementById('size-2');
+    const s2Other = document.getElementById('size-2-other');
+    
+    const finalSize1 = s1.value === 'อื่น ๆ' ? s1Other.value : s1.value;
+    const finalSize2 = s2.value === 'อื่น ๆ' ? s2Other.value : s2.value;
+    
+    if ((s1.value === 'อื่น ๆ' && !s1Other.value) || (s2.value === 'อื่น ๆ' && !s2Other.value)) {
+      return Swal.fire('กรุณาระบุไซส์', 'กรุณาระบุไซส์ที่ต้องการในช่อง "อื่น ๆ"', 'warning');
+    }
+    opt = 'ขาว: ' + finalSize1 + ' | ดำ: ' + finalSize2;
+    
+  } else if (currentProduct.type === 'keychain') {
+    opt = 'แบบ: ' + document.getElementById('style').value;
+  }
+  
+  cart.push({ ...currentProduct, options: opt });
+  document.getElementById('cart-count').innerText = cart.length;
+  bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+  Swal.fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว', timer: 1000, showConfirmButton: false });
+}
 
       function showCart() {
         if (!cart.length) return Swal.fire('ตะกร้าว่าง', 'กรุณาเลือกสินค้าก่อน', 'info');
