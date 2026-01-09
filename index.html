@@ -20,11 +20,20 @@
       .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(255,87,34,0.15) !important; }
       .form-control, .form-select { border-radius: 12px; border: 1px solid #ddd; padding: 12px; font-size: 14px; }
       #loading { backdrop-filter: blur(5px); z-index: 9999; }
+      
+      /* Style สำหรับหน้าปิดการขาย */
+      .closed-container {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
     </style>
   </head>
   <body>
 
-    <nav class="navbar navbar-dark bg-orange sticky-top shadow-sm">
+    <nav id="main-nav" class="navbar navbar-dark bg-orange sticky-top shadow-sm">
       <div class="container">
         <span class="navbar-brand mb-0 h1 fw-bold"><i class="fas fa-chalkboard"></i> BGG20 SHOP</span>
         <button class="btn btn-light text-orange position-relative" onclick="showCart()">
@@ -33,6 +42,15 @@
         </button>
       </div>
     </nav>
+
+    <div id="closed-page" class="container closed-container d-none">
+        <div class="text-center p-5 bg-white shadow-sm rounded-4" style="max-width: 500px;">
+            <i class="fas fa-store-slash fa-4x text-muted mb-4"></i>
+            <h2 class="text-orange fw-bold mb-3">ไม่ได้อยู่ในช่วงการขาย</h2>
+            <p class="text-muted fs-5 mb-0">ขอบคุณสำหรับความสนใจ</p>
+            <p class="small text-muted mt-2">โครงการกระดานดำสัมพันธ์ครั้งที่ 20</p>
+        </div>
+    </div>
 
     <div id="shop-page" class="container py-4">
       <div class="text-center mb-4">
@@ -119,7 +137,11 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-      // *** ใส่ URL Web App ล่าสุดของคุณที่นี่ ***
+      // ============================================
+      // *** ตั้งค่าสถานะร้านค้า (แก้ไขตรงนี้) ***
+      const OPEN_SALE = false; // true = เปิดขาย, false = ปิดขาย
+      // ============================================
+
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxu4AsSVEwTbJabYLqikjjofJKUwTBjErRtQChlbmHqi_eyyj7iYEYHMG3266Juxbmo2g/exec";
 
       const products = [
@@ -134,197 +156,4 @@
         { id: 9, name: "กระเป๋าผ้า", price: 59, img: "https://lh3.googleusercontent.com/d/1341IrW3Au1eTS_7zIBbYigrkIyJ4tf6V=w1000?authuser=0", type: "simple" },
       ];
 
-      const sizes = ["2S (อก 34)", "S (อก 36)", "M (อก 38)", "L (อก 40)", "XL (อก 42)", "2XL (อก 44)", "3XL (อก 46)", "อื่น ๆ"];
-      let cart = [];
-      let currentProduct = null;
-
-      window.onload = renderProducts;
-
-      function renderProducts() {
-        const list = document.getElementById('product-list');
-        list.innerHTML = products.map(p => `
-          <div class="col-6 col-md-4 mb-3">
-            <div class="card h-100 shadow-sm" onclick="openProductModal(${p.id})">
-              <img src="${p.img}" class="card-img-top" style="height:160px; object-fit:cover;">
-              <div class="card-body p-2 text-center">
-                <div class="small fw-bold text-truncate">${p.name}</div>
-                <div class="text-orange fw-bold">${p.price}.-</div>
-              </div>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      function openProductModal(id) {
-        currentProduct = products.find(p => p.id === id);
-        document.getElementById('modal-title').innerText = currentProduct.name;
-        document.getElementById('modal-img').src = currentProduct.img;
-        document.getElementById('modal-price').innerText = currentProduct.price;
-        
-        const chartArea = document.getElementById('size-chart-area');
-        if (currentProduct.sizeChart) {
-          chartArea.classList.remove('d-none');
-          document.getElementById('modal-size-chart').src = currentProduct.sizeChart;
-        } else { chartArea.classList.add('d-none'); }
-
-        let html = '';
-        if (currentProduct.type === 'shirt') html = createSizeSelector('เลือกไซส์', 'size-1');
-        else if (currentProduct.type === 'set') html = createSizeSelector('ไซส์ตัวที่ 1 (ขาว)', 'size-1') + createSizeSelector('ไซส์ตัวที่ 2 (ดำ)', 'size-2');
-        else if (currentProduct.type === 'keychain') html = '<select id="style" class="form-select"><option>แบบที่ 1</option><option>แบบที่ 2</option><option>แบบที่ 3</option></select>';
-        
-        document.getElementById('modal-options').innerHTML = html;
-        new bootstrap.Modal(document.getElementById('productModal')).show();
-      }
-
-      function createSizeSelector(label, id) {
-  return `
-    <div class="mb-3">
-      <label class="small fw-bold">${label}</label>
-      <select class="form-select mb-2 size-select" id="${id}" onchange="checkOtherSize('${id}')">
-        ${sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
-      </select>
-      <input type="text" id="${id}-other" class="form-control d-none" placeholder="ระบุไซส์ที่ต้องการ (เช่น 4XL หรือ อก 50)">
-    </div>
-  `;
-}
-
-// เพิ่มฟังก์ชันสำหรับตรวจสอบเมื่อเลือก "อื่น ๆ"
-function checkOtherSize(id) {
-  const select = document.getElementById(id);
-  const otherInput = document.getElementById(id + '-other');
-  if (select.value === 'อื่น ๆ') {
-    otherInput.classList.remove('d-none');
-    otherInput.focus();
-  } else {
-    otherInput.classList.add('d-none');
-  }
-}
-
-      function confirmAddToCart() {
-  let opt = 'ทั่วไป';
-  
-  if (currentProduct.type === 'shirt') {
-    const s1 = document.getElementById('size-1');
-    const s1Other = document.getElementById('size-1-other');
-    const finalSize = s1.value === 'อื่น ๆ' ? s1Other.value : s1.value;
-    
-    if (s1.value === 'อื่น ๆ' && !s1Other.value) {
-      return Swal.fire('กรุณาระบุไซส์', 'ท่านเลือก "อื่น ๆ" กรุณาระบุไซส์ที่ต้องการ', 'warning');
-    }
-    opt = 'ไซส์: ' + finalSize;
-    
-  } else if (currentProduct.type === 'set') {
-    const s1 = document.getElementById('size-1');
-    const s1Other = document.getElementById('size-1-other');
-    const s2 = document.getElementById('size-2');
-    const s2Other = document.getElementById('size-2-other');
-    
-    const finalSize1 = s1.value === 'อื่น ๆ' ? s1Other.value : s1.value;
-    const finalSize2 = s2.value === 'อื่น ๆ' ? s2Other.value : s2.value;
-    
-    if ((s1.value === 'อื่น ๆ' && !s1Other.value) || (s2.value === 'อื่น ๆ' && !s2Other.value)) {
-      return Swal.fire('กรุณาระบุไซส์', 'กรุณาระบุไซส์ที่ต้องการในช่อง "อื่น ๆ"', 'warning');
-    }
-    opt = 'ขาว: ' + finalSize1 + ' | ดำ: ' + finalSize2;
-    
-  } else if (currentProduct.type === 'keychain') {
-    opt = 'แบบ: ' + document.getElementById('style').value;
-  }
-  
-  cart.push({ ...currentProduct, options: opt });
-  document.getElementById('cart-count').innerText = cart.length;
-  bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
-  Swal.fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว', timer: 1000, showConfirmButton: false });
-}
-
-      function showCart() {
-        if (!cart.length) return Swal.fire('ตะกร้าว่าง', 'กรุณาเลือกสินค้าก่อน', 'info');
-        document.getElementById('shop-page').classList.add('d-none');
-        document.getElementById('cart-page').classList.remove('d-none');
-        renderCartList();
-      }
-
-      function backToShop() {
-        document.getElementById('cart-page').classList.add('d-none');
-        document.getElementById('shop-page').classList.remove('d-none');
-      }
-
-      function renderCartList() {
-        let sub = 0;
-        document.getElementById('cart-items-list').innerHTML = cart.map((item, i) => {
-          sub += item.price;
-          return `<li class="list-group-item d-flex justify-content-between align-items-center">
-            <div><b>${item.name}</b><br><small>${item.options}</small></div>
-            <div class="text-end"><b>${item.price}.-</b><br><a href="#" class="text-danger small" onclick="remove(${i})">ลบ</a></div>
-          </li>`;
-        }).join('');
-        document.getElementById('subtotal-price').innerText = sub;
-        calculateTotal();
-      }
-
-      function remove(i) {
-        cart.splice(i, 1);
-        document.getElementById('cart-count').innerText = cart.length;
-        if (!cart.length) backToShop(); else renderCartList();
-      }
-
-      function calculateTotal() {
-        const sub = parseInt(document.getElementById('subtotal-price').innerText);
-        const shipping = document.getElementById('shipping-method').value === 'shipping' ? 40 : 0;
-        document.getElementById('address-box').classList.toggle('d-none', shipping === 0);
-        if (shipping !== 0) document.getElementById('address-box').required = true;
-        else document.getElementById('address-box').required = false;
-        document.getElementById('final-total').innerText = sub + shipping;
-      }
-
-      function handleFormSubmit(e) {
-        e.preventDefault();
-        const fileInput = document.getElementById('payment-slip');
-        if (!fileInput.files[0]) return Swal.fire('ลืมแนบสลิป', 'กรุณาแนบสลิปเพื่อยืนยันการโอนเงิน', 'warning');
-        
-        document.getElementById('loading').classList.remove('d-none');
-        document.getElementById('submit-btn').disabled = true;
-
-        const reader = new FileReader();
-        reader.onload = function(f) {
-          const base64Data = f.target.result.split(',')[1];
-          const formData = new FormData(e.target);
-          const data = Object.fromEntries(formData.entries());
-          
-          data.totalPrice = document.getElementById('final-total').innerText;
-          data.cart = JSON.stringify(cart);
-          data.fileData = base64Data;
-          data.fileName = fileInput.files[0].name;
-          data.mimeType = fileInput.files[0].type;
-
-          fetch(SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify(data)
-          })
-          .then(res => res.json())
-          .then(res => {
-            document.getElementById('loading').classList.add('d-none');
-            if(res.success) {
-              Swal.fire('สำเร็จ!', 'เลขที่สั่งซื้อของคุณคือ: ' + res.orderId, 'success').then(() => {
-                cart = []; location.reload();
-              });
-            } else {
-              Swal.fire('เกิดข้อผิดพลาด', res.error, 'error');
-              document.getElementById('submit-btn').disabled = false;
-            }
-          })
-          .catch(err => {
-            // กรณีติด CORS แต่ข้อมูลมักจะเข้า Sheets แล้ว
-            document.getElementById('loading').classList.add('d-none');
-            Swal.fire('สำเร็จ!', 'บันทึกข้อมูลและส่งอีเมลเรียบร้อยแล้ว', 'success').then(() => location.reload());
-          });
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-      }
-
-      function toggleSizeChart() {
-        document.getElementById('modal-size-chart').classList.toggle('d-none');
-      }
-    </script>
-  </body>
-</html>
+      const sizes = ["2S (อก 34)", "S (อก 36)", "M (อก 38)", "L (อก
